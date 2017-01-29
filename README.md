@@ -5,21 +5,22 @@ Wer die Pakete selbst kompilieren möchte kann sich hieran orientieren:
 
 Wie folgt bin ich vorgegangen:
 
-Abhängigkeiten bzw. benötigte Pakete herunterladen:
+####Abhängigkeiten bzw. benötigte Pakete herunterladen:
 
 ```
 $ apt-get install git screen fakeroot build-essential devscripts libncurses5 libncurses5-dev libssl-dev bc flex bison libelf-dev libaudit-dev libgtk2.0-dev libperl-dev libperl-dev asciidoc xmlto gnupg gnupg2
 ```
-Download der Sources:
-
-Code:
+####Download der Sources:
+```
 git clone git://git.proxmox.com/git/pve-kernel.git
+```
 (es sind ca. 4,5 GB)
 
 danach muss der Patch angewendet werden:
 
 Der Patch von Cainsaw sah wie folg aus:
 
+####Patch:
 ```
 --- ubuntu-xenial/drivers/iommu/intel-iommu.c.orig      2016-11-24 08:16:14.101871771 +0100
 +++ ubuntu-xenial/drivers/iommu/intel-iommu.c   2016-11-24 08:17:36.581195062 +0100
@@ -60,7 +61,7 @@ Um dieses Patchfile zu erstellen muss man wie folgt vorgehen:
 $ apt-get install patch
 ```
 
-patchfile erstellen:
+####Patchfile erstellen:
 
 ubuntu-xenial.tgz entpacken:
 
@@ -113,6 +114,8 @@ mit etwa folgendem Inhalt im pve-kernel Ordner erscheinen:
                 struct dmar_domain *old_domain;
 ```
 
+####Patch integrieren:
+
 Jetzt muss der Patch noch in das Makefile des Kernels gepackt werden, dass die Änderungen beim kompilieren angewendet werden:
 
 ```
@@ -130,6 +133,8 @@ cd ${KERNEL_SRC}; patch -p1 <../remove_mbrr_check.patch
 ```
 dann speichern und den Kompilierprozess starten:
 
+####Kompilieren:
+
 ```
 $ make
 ```
@@ -146,6 +151,8 @@ pve-headers-4.4.35-1-pve_4.4.35-76_amd64.deb
 pve-headers_4.4-76_all.deb
 pve-kernel-4.4.35-1-pve_4.4.35-76_amd64.deb
 ```
+####Installation:
+
 installiert werden die via:
 
 ```
@@ -157,7 +164,7 @@ danach vorsichtshalber noch ein:
 $ update-initramfs -u
 $ update-grub
 ```
-Einstellungen in Proxmox:
+####Einstellungen in Proxmox:
 
 /etc/default/grub anpassen
 --->
