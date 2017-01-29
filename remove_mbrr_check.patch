@@ -1,0 +1,14 @@
+--- ubuntu-xenial/drivers/iommu/intel-iommu.c	2016-12-22 08:43:45.000000000 +0100
++++ ubuntu-xenial/drivers/iommu/intel-iommu.c.BACKUP	2017-01-29 09:15:50.766600942 +0100
+@@ -4807,11 +4807,6 @@
+ 	int addr_width;
+ 	u8 bus, devfn;
+ 
+-	if (device_is_rmrr_locked(dev)) {
+-		dev_warn(dev, "Device is ineligible for IOMMU domain attach due to platform RMRR requirement.  Contact your platform vendor.\n");
+-		return -EPERM;
+-	}
+-
+ 	/* normally dev is not mapped */
+ 	if (unlikely(domain_context_mapped(dev))) {
+ 		struct dmar_domain *old_domain;
