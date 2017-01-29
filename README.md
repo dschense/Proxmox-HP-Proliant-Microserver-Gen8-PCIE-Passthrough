@@ -7,8 +7,9 @@ Wie folgt bin ich vorgegangen:
 
 Abhängigkeiten bzw. benötigte Pakete herunterladen:
 
-Code:
+```
 $ apt-get install git screen fakeroot build-essential devscripts libncurses5 libncurses5-dev libssl-dev bc flex bison libelf-dev libaudit-dev libgtk2.0-dev libperl-dev libperl-dev asciidoc xmlto gnupg gnupg2
+```
 Download der Sources:
 
 Code:
@@ -18,7 +19,8 @@ git clone git://git.proxmox.com/git/pve-kernel.git
 danach muss der Patch angewendet werden:
 
 Der Patch von Cainsaw sah wie folg aus:
-Code:
+
+```
 --- ubuntu-xenial/drivers/iommu/intel-iommu.c.orig      2016-11-24 08:16:14.101871771 +0100
 +++ ubuntu-xenial/drivers/iommu/intel-iommu.c   2016-11-24 08:17:36.581195062 +0100
 @@ -4797,11 +4797,6 @@ static int intel_iommu_attach_device(str
@@ -32,9 +34,11 @@ Code:
         /* normally dev is not mapped */
         if (unlikely(domain_context_mapped(dev))) {
                 struct dmar_domain *old_domain;
+```
+
 abgewandelt auf den ubuntu-xenial kernel sieht das ganze dann so aus:
 
-Code:
+```
 --- ubuntu-xenial/drivers/iommu/intel-iommu.c   2016-12-05 10:04:59.000000000 +0100
 +++ ubuntu-xenial/drivers/iommu/intel-iommu.c.BACKUP    2016-12-19 11:17:35.897891365 +0100
 @@ -4807,11 +4807,6 @@
@@ -48,36 +52,51 @@ Code:
         /* normally dev is not mapped */
         if (unlikely(domain_context_mapped(dev))) {
                 struct dmar_domain *old_domain;
+```
+
 Um dieses Patchfile zu erstellen muss man wie folgt vorgehen:
 
-Code:
+```
 $ apt-get install patch
+```
+
 patchfile erstellen:
 
 ubuntu-xenial.tgz entpacken:
-Code:
+
+```
 tar -xvzf ubuntu-xenial.tgz
+```
+
 zu ubuntu-xenial/drivers/iommu/intel-iommu.c navigieren:
-Code:
+
+```
 cd ubuntu-xenial/drivers/iommu/
-Code:
+```
+```
 $ cp ubuntu-xenial/drivers/iommu/intel-iommu.c ubuntu-xenial/drivers/iommu/intel-iommu.c.BACKUP
 $ nano ubuntu-xenial/drivers/iommu/intel-iommu.c.BACKUP
+```
+
 diese Zeilen entfernen:
 
-Code:
+```
 if (device_is_rmrr_locked(dev)) {
               dev_warn(dev, "Device is ineligible for IOMMU domain attach due to platform RMRR requirement.  Contact your platform vendor.\n");
                return -EPERM;
        }
+```
+
 danach wieder in den Hauptordner pve-kernel zurücknavigieren und den patch erstellen:
 
-Code:
+```
 $ diff -u ubuntu-xenial/drivers/iommu/intel-iommu.c ubuntu-xenial/drivers/iommu/intel-iommu.c.BACKUP > remove_mbrr_check.patch
+```
+
 darauf sollte das file: remove_mbrr_check.patch
 mit etwa folgendem Inhalt im pve-kernel Ordner erscheinen:
 
-Code:
+```
 --- ubuntu-xenial/drivers/iommu/intel-iommu.c   2016-12-05 10:04:59.000000000 +0100
 +++ ubuntu-xenial/drivers/iommu/intel-iommu.c.BACKUP    2016-12-19 11:17:35.897891365 +0100
 @@ -4807,11 +4807,6 @@
@@ -92,74 +111,95 @@ Code:
         /* normally dev is not mapped */
         if (unlikely(domain_context_mapped(dev))) {
                 struct dmar_domain *old_domain;
+```
+
 Jetzt muss der Patch noch in das Makefile des Kernels gepackt werden, dass die Änderungen beim kompilieren angewendet werden:
 
-Code:
-$ nano Makefilenach der Zeile:
+```
+$ nano Makefile
+```
+nach der Zeile:
 
-Code:
-cd ${KERNEL_SRC}; patch -p1 <../bridge-patch.diffeinfach folgende Zeile einfügen:
+```
+cd ${KERNEL_SRC}; patch -p1 <../bridge-patch.diff
+```
+einfach folgende Zeile einfügen:
 
-Code:
-cd ${KERNEL_SRC}; patch -p1 <../remove_mbrr_check.patchdann speichern und den Kompilierprozess starten:
+```
+cd ${KERNEL_SRC}; patch -p1 <../remove_mbrr_check.patch
+```
+dann speichern und den Kompilierprozess starten:
 
-Code:
+```
 $ make
+```
 Der Vorgang kann einige Zeit bis zu mehreren Stunden, je nach Hardware, in Anspruch nehmen,..
 
 wenn der Vorgang abgeschlossen ist solltet ihr in eurem Kernel Ordner mehrere .deb Dateien haben.
 die werden jetzt installiert:
 
-Code:
+```
 linux-tools-4.4_4.4.35-76_amd64.deb
 proxmox-ve_4.4-76_all.deb
 pve-firmware_1.1-10_all.deb
 pve-headers-4.4.35-1-pve_4.4.35-76_amd64.deb
 pve-headers_4.4-76_all.deb
 pve-kernel-4.4.35-1-pve_4.4.35-76_amd64.deb
+```
 installiert werden die via:
 
-Code:
+```
 $ dpkg -i *.deb
+```
 danach vorsichtshalber noch ein:
 
-Code:
+```
 $ update-initramfs -u
 $ update-grub
+```
 Einstellungen in Proxmox:
 
 /etc/default/grub anpassen
 --->
-Code:
+```
 GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on"
+```
 ich brauche nicht mehr in meiner Zeile. Es wird soweit alles gut erkannt
 
 
 /etc/modules folgendes einfügen um die vfio Module beim boot zu laden:
 --->
-Code:
+```
 vfio
 vfio_iommu_type1
 vfio_pci
 vfio_virqfd
+```
 Treibermodul auf die Blacklist:
 /etc/modprobe.d/blacklist.conf und darin:
-Code:
+```
 blacklist hpsa
+```
 da über lspci -vvv: Kernel driver in use: hpsa angeigt wurde.
 
 danach noch initramfs neu schreiben:
-update-initramfs -u
+```
+$ update-initramfs -u
+```
 
 und Grub updaten:
-update-grub
+```
+$ update-grub
+```
 
 danach alles neu starten !!!!!
 
 nach dem Reboot folgendes in die vm.conf eintragen:
 --->
-Code:
+
+```
 hostpci0: 07:00.0
+```
 Mehr braucht es bei mir nicht.
 
 und schon hatte ich den RaidController in meiner Openmediavault VM. Zugriff auf den Controller, auf die Platten und und und..
